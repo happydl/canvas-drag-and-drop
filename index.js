@@ -123,26 +123,6 @@ class Column extends Shape {
         this.taskList.splice(this.taskList.indexOf(task), 1);
     }
 
-    draw() {
-
-        const ctx = document.getElementById('canvas').getContext('2d');
-        ctx.save()
-
-        ctx.fillStyle = config.columnBackGroundColor;
-
-        // draw background
-        ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth, this.height);
-
-        // set transform for each task in this column
-        for (let i = 0; i < this.taskList.length; i++) {
-            let xTask = this.transform.x + config.taskGapHeight;
-            this.taskList[i].transform.x = xTask;
-            this.taskList[i].transform.y = i * (config.taskHeight + config.taskGapHeight) + config.taskGapHeight;
-            this.taskList[i].draw();
-        }
-
-        ctx.restore();
-    }
 
     checkHit(cx, cy) {
         if (cx >= this.transform.x && cx <= this.transform.x + config.columnWidth && cy >= this.transform.y && cy <= this.transform.y + this.height) {
@@ -162,17 +142,73 @@ class Column extends Shape {
         this.height = Math.max(this.height, config.columnMinHeight);
     }
 
+    setTaskTransform() {
+        // set transform for each task in this column
+        for (let i = 0; i < this.taskList.length; i++) {
+            let xTask = this.transform.x + config.taskGapHeight;
+            this.taskList[i].transform.x = xTask;
+            this.taskList[i].transform.y = i * (config.taskHeight + config.taskGapHeight) + config.taskGapHeight;
+        }
+    }
+
     sortTasks() {
-        if (GameController.instance.gameState === GameState.SELECTED) {
+        if (GameController.instance.gameState === GameState.SELECTED && GameController.instance.selectedCol == this) {
             const cond = (task) => task.isSelected === true;
             const curInd = this.taskList.findIndex(cond);
-            const tarInd = GameController.instance.offsetY - this.transform.y
+            // calculate target index
+            let tarInd = Math.max(0, this.taskList.length - 1);
+            for (let i = 0; i < this.taskList.length; i++) {
+
+                console.log(this.taskList[i].transform.y + config.taskHeight, GameController.instance.offsetY);
+
+                if (this.taskList[i].transform.y + config.taskHeight > GameController.instance.offsetY) {
+                    tarInd = i;
+                    break;
+                }
+            }
+            console.log("tarInd", tarInd, curInd);
+            let newList = [];
+            if (curInd < tarInd) {
+                newList = newList.concat(this.taskList.slice(0, curInd));
+                newList = newList.concat(this.taskList.slice(curInd + 1, tarInd + 1));
+                newList.push(this.taskList[curInd]);
+                newList = newList.concat(this.taskList.slice(tarInd + 1));
+            } else {
+                newList = newList.concat(this.taskList.slice(0, tarInd));
+                newList.push(this.taskList[curInd]);
+                newList = newList.concat(this.taskList.slice(tarInd, curInd));
+                newList = newList.concat(this.taskList.slice(curInd + 1));
+            }
+            this.taskList = newList;
+            if (this.taskList.includes(undefined)) {
+                debugger
+            }
         }
     }
 
     update() {
         this.calculateHeight();
+        this.setTaskTransform();
         this.sortTasks();
+        this.setTaskTransform();
+    }
+
+    draw() {
+
+        const ctx = document.getElementById('canvas').getContext('2d');
+        ctx.save()
+
+        ctx.fillStyle = config.columnBackGroundColor;
+
+        // draw background
+        ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth, this.height);
+
+        // draw tasks
+        for (let i = 0; i < this.taskList.length; i++) {
+            this.taskList[i].draw();
+        }
+
+        ctx.restore();
     }
 
 }
