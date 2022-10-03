@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,11 +11,26 @@
         #canvas {
             border: 1px solid grey;
         }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+        }
     </style>
 </head>
+
 <body>
-    <!-- <h1></h1> -->
-    <canvas id="canvas" height="600" width="800"></canvas>
+    <div class="container">
+        <div>
+            <h4>Kanban Drag and Drop Demo</h4>
+            <div>GitHub repo: <a href="http://www.google.com">link</a></div>
+            <br>
+            <canvas id="canvas" height="720" width="1024"></canvas>
+        </div>
+
+    </div>
     <script src="index.js"></script>
 </body>
+
 </html>

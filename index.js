@@ -1,32 +1,59 @@
 // init data
 const config = {
-    columnWidth: 120,
+    columnWidth: 135,
     columnGapWidth: 10,
     columnMinHeight: 25,
     taskGapHeight: 10,
-    taskWidth: 100,
+    taskWidth: 115,
     taskHeight: 40,
+    columnTitleHeight:20,
+    columnTitleFontSize:20,
+    columnTitleFontColor:"Blue",
     data: {
         columns: [
             {
-                name: "V1",
-                tasks: ["ABC", "DEF", "GHI"]
+                name: "New Issues",
+                tasks: ["Need kubernetes deployment scripts for dev / prod namespaces", "DEF", "GHI"]
             },
             {
-                name: "V2",
-                tasks: ["Dog", "Cat", "Pig", "Tree", "Flower"]
+                name: "Epics",
+                tasks: ["Lorem Ipsum", "aucibus vel luctu", "sagittis. Nam fauc", "retium. Aenean nec "]
             },
             {
-                name: "V3",
-                tasks: ["Building", "Garden"]
+                name: "Product Backlog",
+                tasks: ["Set up Deploy stage in CI/CD pipeline on IBM Cloud", "Need List All functionality in UI"]
+            },
+            {
+                name: "Sprint Backlog",
+                tasks: ["Need CI build passing/failing badge on project repo", "update an existing promotion", "Need skeleton microservice API"]
+            },
+            {
+                name: "In Progress",
+                tasks: ["Mauris eget tellus", "venenatis id sit amet ipsum", "scelerisque", "elementum venenatis", "Flower"]
+            },
+            {
+                name: "Review/QA",
+                tasks: ["consectetur adipiscing elit", "porta vel, facilisis sed tellus"]
+            },
+            {
+                name: "Done",
+                tasks: ["urabitur felis nunc, m", "urabitur felis nunc, m"]
             }
         ]
     },
     columnBackGroundColor: '#FD0',
     taskBackGroundColor: 'white',
+    taskTextColor: 'black',
+    taskSelectedBackGroundColor: 'lightgrey',
     taskFloatBackGroundColor: 'red',
 }
 
+
+// ,
+//             {
+//                 name: "Closed",
+//                 tasks: ["it amet ipsum. ", "it amet ipsum. ", "it amet ipsum." ]
+//             }
 
 class Transform {
     constructor(x, y) {
@@ -74,11 +101,20 @@ class Task extends Shape {
     draw() {
         const ctx = document.getElementById('canvas').getContext('2d');
         ctx.save()
+
+        // clip
+        let squarePath = new Path2D();
+        squarePath.rect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
+        ctx.clip(squarePath);
+
         if (!this.isSelected) {
             ctx.fillStyle = config.taskBackGroundColor;
             ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
+            ctx.fillStyle = config.taskTextColor;
+            ctx.font = '12px Helvetica';
+            ctx.fillText(this.title, this.transform.x + 2, this.transform.y + 12);
         } else {
-            ctx.fillStyle = 'black';
+            ctx.fillStyle = config.taskSelectedBackGroundColor;
             ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
         }
         ctx.restore();
@@ -158,15 +194,11 @@ class Column extends Shape {
             // calculate target index
             let tarInd = Math.max(0, this.taskList.length - 1);
             for (let i = 0; i < this.taskList.length; i++) {
-
-                console.log(this.taskList[i].transform.y + config.taskHeight, GameController.instance.offsetY);
-
                 if (this.taskList[i].transform.y + config.taskHeight > GameController.instance.offsetY) {
                     tarInd = i;
                     break;
                 }
             }
-            console.log("tarInd", tarInd, curInd);
             let newList = [];
             if (curInd < tarInd) {
                 newList = newList.concat(this.taskList.slice(0, curInd));
@@ -309,7 +341,6 @@ class GameController {
                         // move the task to another column
                         for (let col of this.columnList) {
                             if (col.checkHit(e.offsetX, e.offsetY) && col != this.selectedCol) {
-                                console.log('hit')
                                 this.selectedCol.removeTask(this.selectedTask);
                                 col.addTask(this.selectedTask);
                                 this.selectedCol = col;
