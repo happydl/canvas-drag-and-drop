@@ -2,10 +2,10 @@
 const config = {
     columnWidth: 120,
     columnGapWidth: 10,
-    columnMinHeight: 50,
-    taskWidth: 80,
-    taskHeight: 40,
+    columnMinHeight: 25,
     taskGapHeight: 10,
+    taskWidth: 100,
+    taskHeight: 40,
     data: {
         columns: [
             {
@@ -23,7 +23,8 @@ const config = {
         ]
     },
     columnBackGroundColor: '#FD0',
-    taskBackGroundColor: 'white'
+    taskBackGroundColor: 'white',
+    taskFloatBackGroundColor: 'red',
 }
 
 
@@ -45,10 +46,8 @@ class Shape {
 
     /** check whether mouse cursor is in this shape */
     checkHit(cx, cy) {
-        if (cx >= this.transform.x && cx <= this.transform.x + config.taskWidth && cy >= this.transform.y && cy <= this.transform.y + config.taskHeight) {
-            return true;
-        }
-        return false;
+        console.error('Shape::checkHit() not implemented!')
+
     }
 }
 
@@ -82,20 +81,30 @@ class Task extends Shape {
             ctx.fillStyle = 'black';
             ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
         }
-        
         ctx.restore();
     }
 
-    
-
     /**
-     * draw the floating task while being held by mouse
-     * @date 2022-10-03
-     * @param {number} clientX - cursor x position 
-     * @param {number} clientY - cursor y position 
+     * draw the floating task while being moved by mouse
      */
-    drawFloat(clientX, clientY) {
+    drawFloat() {
+        const offsetX = GameController.instance.offsetX;
+        const offsetY = GameController.instance.offsetY;
+        const ctx = document.getElementById('canvas').getContext('2d');
+        ctx.save()
+        ctx.translate(offsetX, offsetY);
+        ctx.rotate((Math.PI / 180) * -15);
+        ctx.translate(-(offsetX), -(offsetY))
+        ctx.fillStyle = config.taskFloatBackGroundColor;
+        ctx.fillRect(offsetX - 0.5 * config.taskWidth, offsetY - 0.5 * config.taskHeight, config.taskWidth, config.taskHeight);
+        ctx.restore();
+    }
 
+    checkHit(cx, cy) {
+        if (cx >= this.transform.x && cx <= this.transform.x + (config.columnWidth - 2 * config.taskGapHeight) && cy >= this.transform.y && cy <= this.transform.y + config.taskHeight) {
+            return true;
+        }
+        return false;
     }
 }
 
@@ -103,6 +112,15 @@ class Column extends Shape {
     constructor() {
         super();
         this.taskList = [];
+        this.height = config.columnMinHeight;
+    }
+
+    addTask(task) {
+        this.taskList.push(task);
+    }
+
+    removeTask(task) {
+        this.taskList.splice(this.taskList.indexOf(task), 1);
     }
 
     draw() {
@@ -112,18 +130,8 @@ class Column extends Shape {
 
         ctx.fillStyle = config.columnBackGroundColor;
 
-        // calculate height of this column
-        let volHeight = this.taskList.length * config.taskHeight;
-
-        // # of gaps is # of tasks - 1
-        if (this.taskList.length > 0) {
-            volHeight += (this.taskList.length + 1) * config.taskGapHeight;
-        }
-
-        // set height to min height if the column is empty
-        volHeight = Math.max(volHeight, config.columnMinHeight);
-
-        ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth, volHeight);
+        // draw background
+        ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth, this.height);
 
         // set transform for each task in this column
         for (let i = 0; i < this.taskList.length; i++) {
@@ -136,6 +144,36 @@ class Column extends Shape {
         ctx.restore();
     }
 
+    checkHit(cx, cy) {
+        if (cx >= this.transform.x && cx <= this.transform.x + config.columnWidth && cy >= this.transform.y && cy <= this.transform.y + this.height) {
+            return true;
+        }
+        return false;
+    }
+
+    calculateHeight() {
+        // calculate height of this column
+        this.height = this.taskList.length * config.taskHeight;
+        // # of gaps is # of tasks - 1
+        if (this.taskList.length > 0) {
+            this.height += (this.taskList.length + 1) * config.taskGapHeight;
+        }
+        // set height to min height if the column is empty
+        this.height = Math.max(this.height, config.columnMinHeight);
+    }
+
+    sortTasks() {
+        if (GameController.instance.gameState === GameState.SELECTED) {
+            const cond = (task) => task.isSelected === true;
+            const curInd = this.taskList.findIndex(cond);
+            const tarInd = GameController.instance.offsetY - this.transform.y
+        }
+    }
+
+    update() {
+        this.calculateHeight();
+        this.sortTasks();
+    }
 
 }
 
@@ -162,6 +200,8 @@ class GameController {
         this.gameState = GameState.NORMAL; // state
         this.clientX = 0; // cursor pos
         this.clientY = 0;
+        this.offsetX = 0;
+        this.offsetY = 0;
 
         if (config) {
             this.config = config;
@@ -200,9 +240,9 @@ class GameController {
                         // check if a task is selected
                         for (let col of this.columnList) {
                             for (let task of col.taskList) {
-                                if (task.checkHit(e.clientX, e.clientY)) {
-                                    this.clientX = e.clientX;
-                                    this.clientY = e.clientY;
+                                if (task.checkHit(e.offsetX, e.offsetY)) {
+                                    this.offsetX = e.offsetX;
+                                    this.offsetY = e.offsetY;
                                     this.selectedTask = task;
                                     this.selectedCol = col;
                                     task.isSelected = true;
@@ -220,19 +260,32 @@ class GameController {
             case GameState.SELECTED:
                 switch (message) {
                     case 'mouseout':
-                        // deselect
+                        // finish moving
+                        this.selectedTask.isSelected = false;
+                        this.selectedTask = null;
+                        this.selectedCol = null;
+                        this.gameState = GameState.NORMAL;
                         break;
                     case 'mousemove':
-                        this.clientX = e.clientX;
-                        this.clientY = e.clientY;
+                        console.log('mousemove')
+                        this.offsetX = e.offsetX;
+                        this.offsetY = e.offsetY;
+                        // move the task to another column
                         for (let col of this.columnList) {
-                            if (col.checkHit(e.clientX, e.clientY)) {
-                                
+                            if (col.checkHit(e.offsetX, e.offsetY) && col != this.selectedCol) {
+                                console.log('hit')
+                                this.selectedCol.removeTask(this.selectedTask);
+                                col.addTask(this.selectedTask);
+                                this.selectedCol = col;
                             }
                         }
                         break;
                     case 'mouseup':
                         // finish moving
+                        this.selectedTask.isSelected = false;
+                        this.selectedTask = null;
+                        this.selectedCol = null;
+                        this.gameState = GameState.NORMAL;
                         break;
                     default:
                         break;
@@ -245,7 +298,9 @@ class GameController {
     }
 
     update() {
-
+        for (let col of this.columnList) {
+            col.update();
+        }
     }
 
     render() {
@@ -280,16 +335,10 @@ class GameController {
         GameController.instance.sendMessage('mousemove', e);
     });
 
-    // canvas.addEventListener('click', (e) => {
-    //     GameController.instance.sendMessage('click', e);
-    // });
-
-    // for mousedown
     canvas.onmousedown = function (e) {
         GameController.instance.sendMessage('mousedown', e);
     }
 
-    // for mouseup
     canvas.onmouseup = function (e) {
         GameController.instance.sendMessage('mouseup', e);
     }
