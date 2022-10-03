@@ -1,14 +1,14 @@
 // init data
 const config = {
-    columnWidth: 135,
+    columnWidth: 150,
     columnGapWidth: 10,
     columnMinHeight: 25,
     taskGapHeight: 10,
-    taskWidth: 115,
+    taskWidth: 130,
     taskHeight: 40,
-    columnTitleHeight:20,
-    columnTitleFontSize:20,
-    columnTitleFontColor:"Blue",
+    columnTitleHeight: 20,
+    columnTitleFontSize: 14,
+    columnTitleFontColor: "Blue",
     data: {
         columns: [
             {
@@ -25,7 +25,7 @@ const config = {
             },
             {
                 name: "Sprint Backlog",
-                tasks: ["Need CI build passing/failing badge on project repo", "update an existing promotion", "Need skeleton microservice API"]
+                tasks: ["Need CI build passing/failing badge on project repo", "update an existing promotion", "Need skeleton microservice API", "Mauris eget tellus", "venenatis id sit amet ipsum", "scelerisque", "elementum venenatis", "Flower"]
             },
             {
                 name: "In Progress",
@@ -38,22 +38,22 @@ const config = {
             {
                 name: "Done",
                 tasks: ["urabitur felis nunc, m", "urabitur felis nunc, m"]
+            },
+            {
+                name: "Closed",
+                tasks: ["it amet ipsum. ", "it amet ipsum. ", "it amet ipsum."]
             }
         ]
     },
-    columnBackGroundColor: '#FD0',
+    columnBackGroundColor: '#EBECF0',
     taskBackGroundColor: 'white',
     taskTextColor: 'black',
     taskSelectedBackGroundColor: 'lightgrey',
-    taskFloatBackGroundColor: 'red',
+    taskFloatBackGroundColor: 'white',
 }
 
 
-// ,
-//             {
-//                 name: "Closed",
-//                 tasks: ["it amet ipsum. ", "it amet ipsum. ", "it amet ipsum." ]
-//             }
+
 
 class Transform {
     constructor(x, y) {
@@ -79,14 +79,6 @@ class Shape {
 }
 
 
-/** game state enum */
-const TaskState = Object.freeze({
-    NORMAL: Symbol("red"),
-    PRESSED: Symbol("blue"),
-    GREEN: Symbol("green")
-});
-
-
 /** task in column */
 class Task extends Shape {
 
@@ -102,17 +94,32 @@ class Task extends Shape {
         const ctx = document.getElementById('canvas').getContext('2d');
         ctx.save()
 
-        // clip
-        let squarePath = new Path2D();
-        squarePath.rect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
-        ctx.clip(squarePath);
+
 
         if (!this.isSelected) {
+
+            ctx.save();
+            ctx.shadowColor = "#B6BAC9";
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            ctx.shadowBlur = 1;
             ctx.fillStyle = config.taskBackGroundColor;
-            ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
+            ctx.beginPath();
+            ctx.roundRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight, 3);
+            ctx.fill();
+            //ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
+            ctx.restore();
+
+            // clip
+            let squarePath = new Path2D();
+            squarePath.rect(this.transform.x + 3, this.transform.y + 3, config.columnWidth - config.taskGapHeight * 2 - 6, config.taskHeight - 3);
+            ctx.clip(squarePath);
+
+            //text
             ctx.fillStyle = config.taskTextColor;
             ctx.font = '12px Helvetica';
             ctx.fillText(this.title, this.transform.x + 2, this.transform.y + 12);
+
         } else {
             ctx.fillStyle = config.taskSelectedBackGroundColor;
             ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
@@ -127,13 +134,35 @@ class Task extends Shape {
         const offsetX = GameController.instance.offsetX;
         const offsetY = GameController.instance.offsetY;
         const ctx = document.getElementById('canvas').getContext('2d');
-        ctx.save()
+        ctx.save() // aa
         ctx.translate(offsetX, offsetY);
-        ctx.rotate((Math.PI / 180) * -15);
+        ctx.rotate((Math.PI / 180) * -6);
         ctx.translate(-(offsetX), -(offsetY))
+
+
+        ctx.save();
+        ctx.shadowColor = "grey";
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+        ctx.shadowBlur = 15;
         ctx.fillStyle = config.taskFloatBackGroundColor;
         ctx.fillRect(offsetX - 0.5 * config.taskWidth, offsetY - 0.5 * config.taskHeight, config.taskWidth, config.taskHeight);
         ctx.restore();
+
+        // clip
+        let squarePath = new Path2D();
+        squarePath.rect(offsetX - 0.5 * config.taskWidth + 3, offsetY - 0.5 * config.taskHeight + 3, config.columnWidth - config.taskGapHeight * 2 - 6, config.taskHeight - 3);
+        ctx.clip(squarePath);
+
+        //text
+        ctx.fillStyle = config.taskTextColor;
+        ctx.font = '12px Helvetica';
+        ctx.fillText(this.title, offsetX - 0.5 * config.taskWidth + 2, offsetY - 0.5 * config.taskHeight + 12);
+
+
+        // ctx.fillStyle = config.taskFloatBackGroundColor;
+        // ctx.fillRect(offsetX - 0.5 * config.taskWidth, offsetY - 0.5 * config.taskHeight, config.taskWidth, config.taskHeight);
+        ctx.restore(); // aa
     }
 
     checkHit(cx, cy) {
@@ -145,10 +174,11 @@ class Task extends Shape {
 }
 
 class Column extends Shape {
-    constructor() {
+    constructor(title) {
         super();
         this.taskList = [];
         this.height = config.columnMinHeight;
+        this.title = title;
     }
 
     addTask(task) {
@@ -169,7 +199,7 @@ class Column extends Shape {
 
     calculateHeight() {
         // calculate height of this column
-        this.height = this.taskList.length * config.taskHeight;
+        this.height = this.taskList.length * config.taskHeight + config.columnTitleHeight;
         // # of gaps is # of tasks - 1
         if (this.taskList.length > 0) {
             this.height += (this.taskList.length + 1) * config.taskGapHeight;
@@ -183,7 +213,7 @@ class Column extends Shape {
         for (let i = 0; i < this.taskList.length; i++) {
             let xTask = this.transform.x + config.taskGapHeight;
             this.taskList[i].transform.x = xTask;
-            this.taskList[i].transform.y = i * (config.taskHeight + config.taskGapHeight) + config.taskGapHeight;
+            this.taskList[i].transform.y = i * (config.taskHeight + config.taskGapHeight) + config.taskGapHeight + config.columnTitleHeight;
         }
     }
 
@@ -233,7 +263,24 @@ class Column extends Shape {
         ctx.fillStyle = config.columnBackGroundColor;
 
         // draw background
-        ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth, this.height);
+        // ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth, this.height);
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(this.transform.x, this.transform.y, config.columnWidth, this.height, 2);
+        ctx.fill();
+        ctx.restore();
+
+        // draw title - clip
+        ctx.save();
+        let squarePath = new Path2D();
+        squarePath.rect(this.transform.x, this.transform.y, config.columnWidth, config.columnTitleHeight);
+        ctx.clip(squarePath);
+
+        // draw title - text
+        ctx.fillStyle = config.taskTextColor;
+        ctx.font = config.columnTitleFontSize + 'px bold Helvetica';
+        ctx.fillText(this.title, this.transform.x + config.taskGapHeight, this.transform.y + config.columnTitleFontSize + 3);
+        ctx.restore();
 
         // draw tasks
         for (let i = 0; i < this.taskList.length; i++) {
@@ -281,7 +328,7 @@ class GameController {
 
     /**
      * @date 2022-10-02
-     * @param {Array} data
+     * @param {Object} data
      */
     loadData(data) {
 
