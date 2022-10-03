@@ -1,14 +1,25 @@
 // init data
 const config = {
-    volumeWidth:100,
-    volumeGapWidth:10,
-    taskWidth:80,
-    taskHeight:40,
-    data:[
-        ["ABC", "DEF", "GHI"],
-        ["Dog", "Cat", "Pig"],
-        ["Building", "Garden", "Tree"],
-    ]
+    volumeWidth: 100,
+    volumeGapWidth: 10,
+    taskWidth: 80,
+    taskHeight: 40,
+    data: {
+        volumes: [
+            {
+                name: "V1",
+                tasks: ["ABC", "DEF", "GHI"]
+            },
+            {
+                name: "V2",
+                tasks: ["Dog", "Cat", "Pig"]
+            },
+            {
+                name: "V3",
+                tasks: ["Building", "Garden", "Tree"]
+            }
+        ]
+    }
 }
 
 
@@ -21,11 +32,11 @@ class Transform {
 
 class Shape {
     constructor() {
-        
+        this.transform = new Transform(0, 0);
     }
 
     draw() {
-        console.error("draw() not implemented!");
+        console.error("Shape::draw() not implemented!");
     }
 }
 
@@ -56,14 +67,20 @@ class Volume extends Shape {
     }
 }
 
+/** game state enum */
+const State = Object.freeze({
+    RED: Symbol("red"),
+    BLUE: Symbol("blue"),
+    GREEN: Symbol("green")
+});
 
 class GameController {
-    static instance = null
-    static getInstance() {
-        if (!this.instance) {
-            this.instance = new GameController(config);
+    static _instance = null
+    static get instance() {
+        if (!this._instance) {
+            this._instance = new GameController(config);
         }
-        return this.instance;
+        return this._instance;
     }
 
     constructor(config) {
@@ -76,10 +93,25 @@ class GameController {
         }
     }
 
+    /**
+     * @date 2022-10-02
+     * @param {Array} data
+     */
     loadData(data) {
 
         // let v1 = new Volume();
         // v1.taskList.push(new Task());
+
+        // data.forEach(vol => {
+        //     let v = new Volume();
+        //     vol.forEach(task => {
+
+        //     });
+        // });
+
+        // for (vol in data) {
+
+        // }
 
     }
 
@@ -98,11 +130,11 @@ class GameController {
 
 
 
-((function(){
+((function () {
     function mainLoop() {
         requestAnimationFrame(mainLoop)
-        GameController.getInstance().update();
-        GameController.getInstance().render();
+        GameController.instance.update();
+        GameController.instance.render();
     }
     mainLoop();
 })());
