@@ -42,6 +42,14 @@ class Shape {
     draw() {
         console.error("Shape::draw() not implemented!");
     }
+
+    /** check whether mouse cursor is in this shape */
+    checkHit(cx, cy) {
+        if (cx >= this.transform.x && cx <= this.transform.x + config.taskWidth && cy >= this.transform.y && cy <= this.transform.y + config.taskHeight) {
+            return true;
+        }
+        return false;
+    }
 }
 
 
@@ -61,28 +69,32 @@ class Task extends Shape {
         this.title = title;
         this.tag = tag;
         this.state = '', 'pressed'
+        this.isSelected = false;
     }
 
     draw() {
         const ctx = document.getElementById('canvas').getContext('2d');
         ctx.save()
-        ctx.fillStyle = config.taskBackGroundColor;
-        ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
+        if (!this.isSelected) {
+            ctx.fillStyle = config.taskBackGroundColor;
+            ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
+        } else {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
+        }
+        
         ctx.restore();
     }
 
-    /** check whether this task is hit */
-    checkHit(cx, cy) {
-        return false;
-    }
+    
 
     /**
      * draw the floating task while being held by mouse
      * @date 2022-10-03
-     * @param {number} cursorX - cursor x position 
-     * @param {number} cursorY - cursor y position 
+     * @param {number} clientX - cursor x position 
+     * @param {number} clientY - cursor y position 
      */
-    drawFloat(cursorX, cursorY) {
+    drawFloat(clientX, clientY) {
 
     }
 }
@@ -124,10 +136,6 @@ class Column extends Shape {
         ctx.restore();
     }
 
-    /** check whether this column is hit */
-    checkHit(cx, cy) {
-        
-    }
 
 }
 
@@ -149,7 +157,11 @@ class GameController {
     constructor(config) {
 
         this.columnList = []; // column list
+        this.selectedCol = null // selected col
         this.selectedTask = null; // selected task
+        this.gameState = GameState.NORMAL; // state
+        this.clientX = 0; // cursor pos
+        this.clientY = 0;
 
         if (config) {
             this.config = config;
@@ -176,10 +188,59 @@ class GameController {
 
     }
 
-    sendMessage(message, event) {
+    sendMessage(message, e) {
         // console.log(message, event);
 
-        
+        // state pattern
+        switch (this.gameState) {
+            case GameState.NORMAL:
+                switch (message) {
+                    case 'mousedown':
+                        console.log('mousedown')
+                        // check if a task is selected
+                        for (let col of this.columnList) {
+                            for (let task of col.taskList) {
+                                if (task.checkHit(e.clientX, e.clientY)) {
+                                    this.clientX = e.clientX;
+                                    this.clientY = e.clientY;
+                                    this.selectedTask = task;
+                                    this.selectedCol = col;
+                                    task.isSelected = true;
+                                    this.gameState = GameState.SELECTED; // transition to selected state
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                break;
+
+            case GameState.SELECTED:
+                switch (message) {
+                    case 'mouseout':
+                        // deselect
+                        break;
+                    case 'mousemove':
+                        this.clientX = e.clientX;
+                        this.clientY = e.clientY;
+                        for (let col of this.columnList) {
+                            if (col.checkHit(e.clientX, e.clientY)) {
+                                
+                            }
+                        }
+                        break;
+                    case 'mouseup':
+                        // finish moving
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            default:
+                break;
+        }
 
     }
 
@@ -214,7 +275,6 @@ class GameController {
 
 
 ((function () {
-
 
     canvas.addEventListener('mousemove', (e) => {
         GameController.instance.sendMessage('mousemove', e);
