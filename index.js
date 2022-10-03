@@ -2,10 +2,10 @@
 const config = {
     columnWidth: 120,
     columnGapWidth: 10,
-    columnMinHeight:50,
+    columnMinHeight: 50,
     taskWidth: 80,
     taskHeight: 40,
-    taskGapHeight:10,
+    taskGapHeight: 10,
     data: {
         columns: [
             {
@@ -45,6 +45,13 @@ class Shape {
 }
 
 
+/** game state enum */
+const TaskState = Object.freeze({
+    NORMAL: Symbol("red"),
+    PRESSED: Symbol("blue"),
+    GREEN: Symbol("green")
+});
+
 
 /** task in column */
 class Task extends Shape {
@@ -53,6 +60,7 @@ class Task extends Shape {
         super();
         this.title = title;
         this.tag = tag;
+        this.state = '', 'pressed'
     }
 
     draw() {
@@ -61,6 +69,21 @@ class Task extends Shape {
         ctx.fillStyle = config.taskBackGroundColor;
         ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth - config.taskGapHeight * 2, config.taskHeight);
         ctx.restore();
+    }
+
+    /** check whether this task is hit */
+    checkHit(cx, cy) {
+        return false;
+    }
+
+    /**
+     * draw the floating task while being held by mouse
+     * @date 2022-10-03
+     * @param {number} cursorX - cursor x position 
+     * @param {number} cursorY - cursor y position 
+     */
+    drawFloat(cursorX, cursorY) {
+
     }
 }
 
@@ -91,7 +114,7 @@ class Column extends Shape {
         ctx.fillRect(this.transform.x, this.transform.y, config.columnWidth, volHeight);
 
         // set transform for each task in this column
-        for (let i=0; i<this.taskList.length; i++) {
+        for (let i = 0; i < this.taskList.length; i++) {
             let xTask = this.transform.x + config.taskGapHeight;
             this.taskList[i].transform.x = xTask;
             this.taskList[i].transform.y = i * (config.taskHeight + config.taskGapHeight) + config.taskGapHeight;
@@ -100,13 +123,18 @@ class Column extends Shape {
 
         ctx.restore();
     }
+
+    /** check whether this column is hit */
+    checkHit(cx, cy) {
+        
+    }
+
 }
 
 /** game state enum */
-const State = Object.freeze({
-    RED: Symbol("red"),
-    BLUE: Symbol("blue"),
-    GREEN: Symbol("green")
+const GameState = Object.freeze({
+    NORMAL: Symbol("normal"),
+    SELECTED: Symbol("selected"),
 });
 
 class GameController {
@@ -119,7 +147,10 @@ class GameController {
     }
 
     constructor(config) {
+
         this.columnList = []; // column list
+        this.selectedTask = null; // selected task
+
         if (config) {
             this.config = config;
             if (config.data) {
@@ -145,17 +176,27 @@ class GameController {
 
     }
 
+    sendMessage(message, event) {
+        // console.log(message, event);
+
+        
+
+    }
+
     update() {
 
     }
 
     render() {
 
-        const ctx = document.getElementById('canvas').getContext('2d');
-        
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext('2d');
 
-        // draw columns background
-        for (let i=0; i<this.columnList.length; i++) {
+        // clear rect
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // draw columns
+        for (let i = 0; i < this.columnList.length; i++) {
             let xStart = i * this.config.columnGapWidth + i * this.config.columnWidth;
             let yStart = 0;
             this.columnList[i].transform.x = xStart;
@@ -163,18 +204,40 @@ class GameController {
             this.columnList[i].draw();
         }
 
-        // draw tasks
-        // for ()
-
-
-
+        // draw the selected task
+        if (this.selectedTask) {
+            this.selectedTask.drawFloat();
+        }
 
     }
 }
 
 
-
 ((function () {
+
+
+    canvas.addEventListener('mousemove', (e) => {
+        GameController.instance.sendMessage('mousemove', e);
+    });
+
+    // canvas.addEventListener('click', (e) => {
+    //     GameController.instance.sendMessage('click', e);
+    // });
+
+    // for mousedown
+    canvas.onmousedown = function (e) {
+        GameController.instance.sendMessage('mousedown', e);
+    }
+
+    // for mouseup
+    canvas.onmouseup = function (e) {
+        GameController.instance.sendMessage('mouseup', e);
+    }
+
+    canvas.addEventListener('mouseout', (e) => {
+        GameController.instance.sendMessage('mouseout', e);
+    });
+
     function mainLoop() {
         requestAnimationFrame(mainLoop)
         GameController.instance.update();
